@@ -10,7 +10,22 @@ const APP_TABS = [
   { id: 'calendar', label: 'Kalender' },
   { id: 'progress', label: 'Fortschritt' },
   { id: 'tasks', label: 'Aufgaben' },
+  { id: 'plan', label: 'Abo' },
 ];
+const FREE_TASK_UNLOCK_LIMIT = 8;
+const PREMIUM_PREVIEW_DAYS = 30;
+const PLAN_DETAILS = {
+  free: {
+    name: 'Gratis',
+    price: '0 €',
+    summary: 'Täglicher Drop, Basis-Fortschritt und die ersten Gewohnheiten.',
+  },
+  premium: {
+    name: 'Premium',
+    price: '4,99 € / Monat',
+    summary: 'Mehr Gewohnheiten, längere Vorschau und detaillierter Wochenrückblick.',
+  },
+};
 
 const TASKS = [
   {
@@ -204,6 +219,20 @@ function getUnlockedTasks(completedCount) {
   return TASKS.filter((task) => task.unlockAt <= completedCount);
 }
 
+function getAvailableTasks(completedCount, isPremium) {
+  return getUnlockedTasks(completedCount).filter(
+    (task) => isPremium || task.unlockAt <= FREE_TASK_UNLOCK_LIMIT,
+  );
+}
+
+function getNextUnlockTask(completedCount, isPremium) {
+  return TASKS.find(
+    (task) =>
+      task.unlockAt > completedCount &&
+      (isPremium || task.unlockAt <= FREE_TASK_UNLOCK_LIMIT),
+  ) ?? null;
+}
+
 function getTaskForOffset(dayOffset = 0, availableTasks = TASKS) {
   if (dayOffset >= 0 && dayOffset < START_SEQUENCE_TASK_IDS.length) {
     return getTaskById(START_SEQUENCE_TASK_IDS[dayOffset]);
@@ -232,6 +261,7 @@ function getInitialProgress() {
     lastCompletedDate: null,
     completedDates: [],
     taskAssignments: {},
+    plan: 'free',
   };
 
   const savedValue = localStorage.getItem(STORAGE_KEY);
@@ -260,6 +290,7 @@ function getInitialProgress() {
         !Array.isArray(parsedValue.taskAssignments)
           ? parsedValue.taskAssignments
           : {},
+      plan: parsedValue.plan === 'premium' ? 'premium' : 'free',
     };
   } catch {
     return emptyProgress;
@@ -362,7 +393,13 @@ function getBestStreak(completedDates) {
   return bestStreak;
 }
 
-function buildProgressState(completedDates, taskAssignments, todayKey, startDateKey) {
+function buildProgressState(
+  completedDates,
+  taskAssignments,
+  todayKey,
+  startDateKey,
+  plan = 'free',
+) {
   const sortedCompletedDates = sortDateKeysDescending(completedDates).slice(0, 365);
 
   return {
@@ -373,6 +410,7 @@ function buildProgressState(completedDates, taskAssignments, todayKey, startDate
     lastCompletedDate: sortedCompletedDates[0] ?? null,
     completedDates: sortedCompletedDates,
     taskAssignments,
+    plan,
   };
 }
 
@@ -383,7 +421,15 @@ function getProgressHighlight(
   completedThisWeek,
   nextUnlockTask,
   tasksUntilNextUnlock,
+  isPremium,
 ) {
+  if (!isPremium && !nextUnlockTask && completedCount >= FREE_TASK_UNLOCK_LIMIT) {
+    return {
+      title: 'Deine Gratis-Basis steht.',
+      text: 'Premium öffnet die erweiterten Gewohnheiten, längere Vorschau und deinen Wochenrückblick.',
+    };
+  }
+
   if (nextUnlockTask && tasksUntilNextUnlock === 1) {
     return {
       title: 'Du bist ganz nah an der nächsten Freischaltung.',
@@ -447,6 +493,7 @@ function getDayWindowHighlight(
   selectedDayIsToday,
   currentStreak,
   startDateLabel,
+  previewDays,
 ) {
   if (selectedDayBeforeStart) {
     return {
@@ -458,7 +505,7 @@ function getDayWindowHighlight(
   if (selectedDayBeyondPreview) {
     return {
       title: 'Die Vorschau bleibt bewusst kurz.',
-      text: `Du kannst aktuell bis zu ${PREVIEW_DAYS} Tage im Voraus schauen. Danach wird der nächste Drop später sichtbar.`,
+      text: `Du kannst aktuell bis zu ${previewDays} Tage im Voraus schauen. Danach wird der nächste Drop später sichtbar.`,
     };
   }
 
@@ -514,16 +561,23 @@ function App() {
     [progress.completedDates],
   );
   const completedCount = sortedCompletedDates.length;
-  const unlockedTasks = useMemo(() => getUnlockedTasks(completedCount), [completedCount]);
+  const currentPlan = progress.plan === 'premium' ? 'premium' : 'free';
+  const isPremium = currentPlan === 'premium';
+  const currentPlanDetails = PLAN_DETAILS[currentPlan];
+  const activePreviewDays = isPremium ? PREMIUM_PREVIEW_DAYS : PREVIEW_DAYS;
+  const unlockedTasks = useMemo(
+    () => getAvailableTasks(completedCount, isPremium),
+    [completedCount, isPremium],
+  );
   const nextUnlockTask = useMemo(
-    () => TASKS.find((task) => task.unlockAt > completedCount) ?? null,
-    [completedCount],
+    () => getNextUnlockTask(completedCount, isPremium),
+    [completedCount, isPremium],
   );
   const tasksUntilNextUnlock = nextUnlockTask
     ? Math.max(nextUnlockTask.unlockAt - completedCount, 0)
     : 0;
   const startDateKey = progress.startDateKey;
-  const previewEndKey = getDateKeyWithOffset(todayKey, PREVIEW_DAYS);
+  const previewEndKey = getDateKeyWithOffset(todayKey, activePreviewDays);
   const selectedDayBeforeStart = selectedDateKey < startDateKey;
   const selectedDayBeyondPreview = selectedDateKey > previewEndKey;
   const selectedDayHasTask = !selectedDayBeforeStart && !selectedDayBeyondPreview;
@@ -608,6 +662,7 @@ function App() {
     completedThisWeek,
     nextUnlockTask,
     tasksUntilNextUnlock,
+    isPremium,
   );
   const dayWindowHighlight = getDayWindowHighlight(
     selectedDayBeforeStart,
@@ -617,6 +672,7 @@ function App() {
     selectedDayIsToday,
     currentStreak,
     startDateLabel,
+    activePreviewDays,
   );
   const selectedDayStatus = selectedDayBeforeStart
     ? 'Noch nicht gestartet'
@@ -627,6 +683,8 @@ function App() {
         : selectedDayCompleted
           ? 'Erledigt'
           : 'Offen';
+  const premiumTaskCount = TASKS.filter((task) => task.unlockAt > FREE_TASK_UNLOCK_LIMIT).length;
+  const freeTaskCount = TASKS.length - premiumTaskCount;
 
   useEffect(() => {
     if (progress.storageVersion !== STORAGE_VERSION || !progress.startDateKey) {
@@ -688,6 +746,13 @@ function App() {
     setIsDayWindowOpen(false);
   }
 
+  function handlePlanChange(nextPlan) {
+    setProgress((currentProgress) => ({
+      ...currentProgress,
+      plan: nextPlan,
+    }));
+  }
+
   function handleComplete() {
     setProgress((currentProgress) => {
       if (
@@ -708,6 +773,7 @@ function App() {
         },
         todayKey,
         currentProgress.startDateKey,
+        currentProgress.plan ?? 'free',
       );
     });
   }
@@ -726,6 +792,7 @@ function App() {
         nextTaskAssignments,
         todayKey,
         currentProgress.startDateKey,
+        currentProgress.plan ?? 'free',
       );
     });
   }
@@ -764,6 +831,9 @@ function App() {
               Heutigen Tag öffnen
             </button>
             <span className="hero-note">Jeder Fortschritt wird direkt in deinem Browser gespeichert</span>
+            <span className={`plan-badge ${isPremium ? 'is-premium' : ''}`}>
+              {currentPlanDetails.name} · {currentPlanDetails.price}
+            </span>
           </div>
         </section>
 
@@ -804,7 +874,7 @@ function App() {
                 </h2>
               </div>
               <span className="task-time">
-                {selectedTask ? selectedTask.duration : selectedDayBeforeStart ? `Start: ${startDateLabel}` : `+${PREVIEW_DAYS} Tage Vorschau`}
+                {selectedTask ? selectedTask.duration : selectedDayBeforeStart ? `Start: ${startDateLabel}` : `+${activePreviewDays} Tage Vorschau`}
               </span>
             </div>
 
@@ -820,7 +890,7 @@ function App() {
                 {selectedDayBeforeStart
                   ? 'Dein persönlicher Kalender startet erst mit deinem ersten App-Tag.'
                   : selectedDayBeyondPreview
-                    ? `Du kannst nur bis zu ${PREVIEW_DAYS} Tage im Voraus planen.`
+                    ? `Du kannst nur bis zu ${activePreviewDays} Tage im Voraus planen.`
                     : selectedDayIsToday
                       ? 'Ein guter Tag beginnt oft mit einem kleinen Drop.'
                       : 'Jeder kleine Drop bringt dich Schritt für Schritt weiter.'}
@@ -832,7 +902,7 @@ function App() {
                 ? selectedTask.description
                 : selectedDayBeforeStart
                   ? `Deine erste Aufgabe startet am ${startDateLabel}. Frühere Tage bleiben bewusst leer, damit dein Fortschritt wirklich bei deinem Start beginnt.`
-                  : `Die Aufgaben-Vorschau endet aktuell ${PREVIEW_DAYS} Tage in der Zukunft. Danach bleibt der Kalender offen, aber ohne konkrete Aufgabe.`}
+                  : `Die Aufgaben-Vorschau endet aktuell ${activePreviewDays} Tage in der Zukunft. Danach bleibt der Kalender offen, aber ohne konkrete Aufgabe.`}
             </p>
             <p className="task-benefit">
               {selectedTask
@@ -890,7 +960,7 @@ function App() {
               {selectedDayBeforeStart
                 ? `Vor dem ${startDateLabel} wird noch nichts gezählt, damit dein Start sauber und persönlich bleibt.`
                 : selectedDayBeyondPreview
-                  ? `Die Vorschau ist bewusst auf ${PREVIEW_DAYS} Tage begrenzt. So bleiben neue Freischaltungen flexibel.`
+                  ? `Die Vorschau ist bewusst auf ${activePreviewDays} Tage begrenzt. So bleiben neue Freischaltungen flexibel.`
                 : selectedDayIsFuture
                 ? 'Du kannst zukünftige Tage schon ansehen, aber noch nicht als erledigt markieren.'
                 : selectedDayCompleted
@@ -962,7 +1032,7 @@ function App() {
                 erledigt.
               </p>
               <p className="calendar-copy calendar-copy-secondary">
-                Rückblick ab deinem Starttag, Vorschau nur bis zu {PREVIEW_DAYS} Tage in die Zukunft.
+                Rückblick ab deinem Starttag, Vorschau bis zu {activePreviewDays} Tage in die Zukunft.
               </p>
             </div>
 
@@ -993,6 +1063,13 @@ function App() {
               </button>
             </div>
           </div>
+
+          {!isPremium ? (
+            <div className="premium-note">
+              <strong>Gratis-Vorschau:</strong> Du siehst aktuell {PREVIEW_DAYS} Tage im Voraus.
+              Premium erweitert die Vorschau auf {PREMIUM_PREVIEW_DAYS} Tage.
+            </div>
+          ) : null}
 
           <div className="calendar-weekdays">
             {WEEKDAY_LABELS.map((label) => (
@@ -1054,26 +1131,31 @@ function App() {
                   ? `Noch ${tasksUntilNextUnlock} erledigte ${
                       tasksUntilNextUnlock === 1 ? 'Aufgabe' : 'Aufgaben'
                     } bis "${nextUnlockTask.title}" freigeschaltet wird.`
-                  : 'Du hast alle Gewohnheiten freigeschaltet. Stark gemacht.'}
+                  : isPremium
+                    ? 'Du hast alle Gewohnheiten freigeschaltet. Stark gemacht.'
+                    : `${premiumTaskCount} weitere Gewohnheiten sind in Premium enthalten.`}
               </p>
             </div>
           </div>
 
           <div className="unlock-grid">
             {TASKS.map((task) => {
-              const isUnlocked = task.unlockAt <= completedCount;
+              const isPremiumOnly = task.unlockAt > FREE_TASK_UNLOCK_LIMIT;
+              const isUnlocked = task.unlockAt <= completedCount && (isPremium || !isPremiumOnly);
 
               return (
                 <article
-                  className={`unlock-item ${isUnlocked ? 'is-unlocked' : 'is-locked'}`}
+                  className={`unlock-item ${isUnlocked ? 'is-unlocked' : 'is-locked'} ${isPremiumOnly ? 'is-premium-only' : ''}`}
                   key={task.id}
                 >
                   <div className="unlock-item-top">
                     <span className={`unlock-state ${isUnlocked ? 'is-unlocked' : 'is-locked'}`}>
-                      {isUnlocked ? 'Freigeschaltet' : 'Gesperrt'}
+                      {isUnlocked ? 'Freigeschaltet' : isPremiumOnly && !isPremium ? 'Premium' : 'Gesperrt'}
                     </span>
                     <span className="unlock-threshold">
-                      {task.unlockAt === 0
+                      {isPremiumOnly && !isPremium
+                        ? 'Premium-Version'
+                        : task.unlockAt === 0
                         ? 'Ab Start'
                         : `Ab ${task.unlockAt} erledigten Aufgaben`}
                     </span>
@@ -1082,6 +1164,8 @@ function App() {
                   <p>
                     {isUnlocked
                       ? 'Diese Gewohnheit ist jetzt in deiner Aufgabenrotation aktiv.'
+                      : isPremiumOnly && !isPremium
+                        ? 'Diese erweiterte Gewohnheit wird mit Premium geöffnet.'
                       : 'Mit weiteren kleinen Schritten wird diese Aufgabe automatisch geöffnet.'}
                   </p>
                 </article>
@@ -1091,52 +1175,75 @@ function App() {
         </section>
 
         <section className="weekly-review-card app-page" hidden={activeTab !== 'progress'}>
-          <div className="weekly-review-header">
-            <p className="section-label">Wochenrückblick</p>
-            <h3>Das hast du in dieser Woche geschafft</h3>
-            <p className="weekly-review-copy">
-              {completedThisWeek} von 7 Tagen sind bereits mit einem Drop gefüllt.
-              Hier siehst du deine Woche Tag für Tag.
-            </p>
-          </div>
+          {isPremium ? (
+            <>
+              <div className="weekly-review-header">
+                <p className="section-label">Wochenrückblick</p>
+                <h3>Das hast du in dieser Woche geschafft</h3>
+                <p className="weekly-review-copy">
+                  {completedThisWeek} von 7 Tagen sind bereits mit einem Drop gefüllt.
+                  Hier siehst du deine Woche Tag für Tag.
+                </p>
+              </div>
 
-          <div className="weekly-review-list">
-            {weeklyReviewEntries.map((entry) => (
-              <article
-                className={`weekly-review-item ${entry.isBeforeStart ? 'is-before-start' : entry.isCompleted ? 'is-complete' : 'is-open'}`}
-                key={entry.dayKey}
-              >
-                <div className="weekly-review-date">
-                  <span className="weekly-review-day">{entry.dayLabel}</span>
-                  <span className="weekly-review-date-text">{entry.fullDateLabel}</span>
-                </div>
-
-                <div className="weekly-review-content">
-                  <h4>
-                    {entry.isBeforeStart
-                      ? 'Noch nicht gestartet'
-                      : entry.isCompleted
-                        ? entry.task.title
-                        : `Noch offen: ${entry.task.title}`}
-                  </h4>
-                  <p>
-                    {entry.isBeforeStart
-                      ? `Start ab ${startDateLabel}`
-                      : `${entry.task.category} · ${entry.task.duration}`}
-                    {entry.isToday ? ' · Heute' : ''}
-                  </p>
-                </div>
-
-                <div className="weekly-review-status">
-                  <span
-                    className={`weekly-review-badge ${entry.isBeforeStart ? 'is-muted' : entry.isCompleted ? 'is-complete' : 'is-open'}`}
+              <div className="weekly-review-list">
+                {weeklyReviewEntries.map((entry) => (
+                  <article
+                    className={`weekly-review-item ${entry.isBeforeStart ? 'is-before-start' : entry.isCompleted ? 'is-complete' : 'is-open'}`}
+                    key={entry.dayKey}
                   >
-                    {entry.isBeforeStart ? 'Noch kein Start' : entry.isCompleted ? 'Geschafft' : 'Offen'}
-                  </span>
-                </div>
-              </article>
-            ))}
-          </div>
+                    <div className="weekly-review-date">
+                      <span className="weekly-review-day">{entry.dayLabel}</span>
+                      <span className="weekly-review-date-text">{entry.fullDateLabel}</span>
+                    </div>
+
+                    <div className="weekly-review-content">
+                      <h4>
+                        {entry.isBeforeStart
+                          ? 'Noch nicht gestartet'
+                          : entry.isCompleted
+                            ? entry.task.title
+                            : `Noch offen: ${entry.task.title}`}
+                      </h4>
+                      <p>
+                        {entry.isBeforeStart
+                          ? `Start ab ${startDateLabel}`
+                          : `${entry.task.category} · ${entry.task.duration}`}
+                        {entry.isToday ? ' · Heute' : ''}
+                      </p>
+                    </div>
+
+                    <div className="weekly-review-status">
+                      <span
+                        className={`weekly-review-badge ${entry.isBeforeStart ? 'is-muted' : entry.isCompleted ? 'is-complete' : 'is-open'}`}
+                      >
+                        {entry.isBeforeStart ? 'Noch kein Start' : entry.isCompleted ? 'Geschafft' : 'Offen'}
+                      </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="premium-gate">
+              <p className="section-label">Premium</p>
+              <h3>Wochenrückblick freischalten</h3>
+              <p>
+                In der Gratis-Version siehst du deine Basis-Zahlen. Premium zeigt dir deine
+                Woche Tag für Tag und hilft dir, Erfolge bewusster wahrzunehmen.
+              </p>
+              <button
+                className="primary-link"
+                onClick={() => {
+                  handlePlanChange('premium');
+                  setActiveTab('progress');
+                }}
+                type="button"
+              >
+                Premium testen
+              </button>
+            </div>
+          )}
         </section>
 
         <section className="tips-card app-page" hidden={activeTab !== 'tasks'}>
@@ -1154,6 +1261,60 @@ function App() {
               <h3>Sichtbarer Fortschritt</h3>
               <p>Deine Serie zeigt dir direkt, dass du dranbleibst und weiterkommst.</p>
             </div>
+          </div>
+        </section>
+
+        <section className="plan-card app-page" hidden={activeTab !== 'plan'}>
+          <p className="section-label">Abo</p>
+          <h3>Gratis starten, Premium vorbereiten</h3>
+          <p className="plan-intro">
+            Das ist aktuell ein MVP ohne echte Zahlung. Der Premium-Button schaltet die
+            Funktionen als Demo frei. Für echte Zahlungen kann später Stripe, PayPal oder
+            ein App-Store-Abo angebunden werden.
+          </p>
+
+          <div className="plan-grid">
+            <article className={`plan-option ${!isPremium ? 'is-current' : ''}`}>
+              <span className="plan-kicker">Aktueller Start</span>
+              <h4>{PLAN_DETAILS.free.name}</h4>
+              <strong>{PLAN_DETAILS.free.price}</strong>
+              <p>{PLAN_DETAILS.free.summary}</p>
+              <ul>
+                <li>Täglicher Daily Drop</li>
+                <li>{freeTaskCount} Basis-Gewohnheiten</li>
+                <li>{PREVIEW_DAYS} Tage Vorschau</li>
+                <li>Basis-Fortschritt</li>
+              </ul>
+              <button
+                className="secondary-button"
+                disabled={!isPremium}
+                onClick={() => handlePlanChange('free')}
+                type="button"
+              >
+                Gratis nutzen
+              </button>
+            </article>
+
+            <article className={`plan-option plan-option-premium ${isPremium ? 'is-current' : ''}`}>
+              <span className="plan-kicker">Mehr Dranbleiben</span>
+              <h4>{PLAN_DETAILS.premium.name}</h4>
+              <strong>{PLAN_DETAILS.premium.price}</strong>
+              <p>{PLAN_DETAILS.premium.summary}</p>
+              <ul>
+                <li>Alle {TASKS.length} Gewohnheiten</li>
+                <li>{PREMIUM_PREVIEW_DAYS} Tage Vorschau</li>
+                <li>Wochenrückblick</li>
+                <li>Erweiterte Freischaltungen</li>
+              </ul>
+              <button
+                className="complete-button"
+                disabled={isPremium}
+                onClick={() => handlePlanChange('premium')}
+                type="button"
+              >
+                Premium testen
+              </button>
+            </article>
           </div>
         </section>
       </main>
@@ -1206,7 +1367,7 @@ function App() {
                       ? selectedTask.duration
                       : selectedDayBeforeStart
                         ? startDateLabel
-                        : `Bis +${PREVIEW_DAYS} Tage`}
+                        : `Bis +${activePreviewDays} Tage`}
                   </span>
                 </div>
                 <p className="day-window-text">
@@ -1214,7 +1375,7 @@ function App() {
                     ? selectedTask.description
                     : selectedDayBeforeStart
                       ? `Vor dem ${startDateLabel} zeigt die App keine Aufgaben an.`
-                      : `Die konkrete Aufgaben-Vorschau wird erst in den nächsten ${PREVIEW_DAYS} Tagen sichtbar.`}
+                      : `Die konkrete Aufgaben-Vorschau wird erst in den nächsten ${activePreviewDays} Tagen sichtbar.`}
                 </p>
               </section>
 

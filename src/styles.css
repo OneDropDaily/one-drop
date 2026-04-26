@@ -80,7 +80,8 @@ a {
 .calendar-card,
 .unlock-card,
 .weekly-review-card,
-.tips-card {
+.tips-card,
+.plan-card {
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(17, 104, 255, 0.09);
   box-shadow: 0 24px 70px rgba(17, 71, 170, 0.12);
@@ -207,9 +208,25 @@ a {
   font-size: 0.95rem;
 }
 
+.plan-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  background: #edf4ff;
+  color: var(--blue-800);
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.plan-badge.is-premium {
+  background: #dcecff;
+  color: #08245f;
+}
+
 .app-tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 0.45rem;
   margin: 0 0 1.5rem;
   padding: 0.45rem;
@@ -261,7 +278,8 @@ a {
 }
 
 .weekly-review-card.app-page,
-.tips-card.app-page {
+.tips-card.app-page,
+.plan-card.app-page {
   margin-top: 1rem;
 }
 
@@ -276,7 +294,8 @@ a {
 .calendar-card,
 .unlock-card,
 .weekly-review-card,
-.tips-card {
+.tips-card,
+.plan-card {
   border-radius: 24px;
   padding: 1.6rem;
   animation: fade-up 650ms ease-out;
@@ -357,6 +376,11 @@ a {
   background: #e8f2ff;
   color: var(--blue-800);
   font-weight: 700;
+}
+
+.secondary-button:disabled,
+.complete-button:disabled {
+  opacity: 0.72;
 }
 
 .undo-button {
@@ -499,6 +523,29 @@ a {
 .calendar-copy-secondary {
   margin-top: 0.25rem;
   font-size: 0.96rem;
+}
+
+.premium-note,
+.premium-gate {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(220, 237, 255, 0.98) 0%, rgba(241, 248, 255, 0.98) 100%);
+  color: var(--text-soft);
+}
+
+.premium-note strong {
+  color: var(--blue-950);
+}
+
+.premium-gate h3 {
+  margin: 0;
+  font-size: 1.45rem;
+}
+
+.premium-gate p {
+  margin: 0.65rem 0 1rem;
+  color: var(--text-soft);
 }
 
 .calendar-controls {
@@ -700,6 +747,10 @@ a {
   opacity: 0.78;
 }
 
+.unlock-item.is-premium-only {
+  border-color: rgba(17, 104, 255, 0.16);
+}
+
 .unlock-item-top {
   display: flex;
   flex-wrap: wrap;
@@ -857,6 +908,79 @@ a {
   color: var(--text-soft);
 }
 
+.plan-card {
+  animation-delay: 120ms;
+}
+
+.plan-card h3 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2vw, 2rem);
+}
+
+.plan-intro {
+  max-width: 64ch;
+  margin: 0.65rem 0 1.2rem;
+  color: var(--text-soft);
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.plan-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1.2rem;
+  border: 1px solid rgba(17, 104, 255, 0.12);
+  border-radius: 22px;
+  background: rgba(238, 247, 255, 0.9);
+}
+
+.plan-option.is-current {
+  border-color: rgba(17, 104, 255, 0.36);
+  box-shadow: inset 0 0 0 1px rgba(17, 104, 255, 0.12);
+}
+
+.plan-option-premium {
+  background: linear-gradient(135deg, rgba(220, 237, 255, 0.98) 0%, rgba(243, 249, 255, 0.98) 100%);
+}
+
+.plan-kicker {
+  color: var(--blue-800);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.plan-option h4 {
+  margin: 0;
+  font-size: 1.45rem;
+}
+
+.plan-option strong {
+  color: var(--blue-950);
+  font-size: 1.7rem;
+}
+
+.plan-option p,
+.plan-option li {
+  color: var(--text-soft);
+}
+
+.plan-option p,
+.plan-option ul {
+  margin: 0;
+}
+
+.plan-option ul {
+  display: grid;
+  gap: 0.45rem;
+  padding-left: 1.15rem;
+}
+
 .day-window-backdrop {
   position: fixed;
   inset: 0;
@@ -1011,7 +1135,8 @@ a {
   }
 
   .task-grid,
-  .tips-grid {
+  .tips-grid,
+  .plan-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1021,7 +1146,8 @@ a {
   .calendar-card,
   .unlock-card,
   .weekly-review-card,
-  .tips-card {
+  .tips-card,
+  .plan-card {
     padding: 1.3rem;
   }
 
