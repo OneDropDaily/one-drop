@@ -1,0 +1,25 @@
+{
+  "name": "One Drop",
+  "short_name": "One Drop",
+  "description": "Taegliche kleine Gewohnheiten fuer mehr Rhythmus, Energie und Dranbleiben.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef7ff",
+  "theme_color": "#092055",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "maskable-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
