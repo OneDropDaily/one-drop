@@ -54,7 +54,7 @@ npm run preview -- --host 0.0.0.0
 Der Link sieht ungefähr so aus:
 
 ```text
-https://VibrantVitalist.github.io/one-drop/
+https://ischen99.github.io/one-drop/
 ```
 
 Andere können diesen Link auf Android in Chrome öffnen und dann `App installieren` oder `Zum Startbildschirm hinzufügen` auswählen.
