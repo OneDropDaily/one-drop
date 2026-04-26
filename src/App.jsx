@@ -16,9 +16,9 @@ const FREE_TASK_UNLOCK_LIMIT = 8;
 const PREMIUM_PREVIEW_DAYS = 30;
 const PLAN_DETAILS = {
   free: {
-    name: 'Gratis',
-    price: '0 €',
-    summary: 'Täglicher Drop, Basis-Fortschritt und die ersten Gewohnheiten.',
+    name: 'Starter',
+    price: 'Kostenfrei starten',
+    summary: 'Alles, was du brauchst, um deinen ersten Rhythmus aufzubauen.',
   },
   premium: {
     name: 'Premium',
@@ -425,8 +425,8 @@ function getProgressHighlight(
 ) {
   if (!isPremium && !nextUnlockTask && completedCount >= FREE_TASK_UNLOCK_LIMIT) {
     return {
-      title: 'Deine Gratis-Basis steht.',
-      text: 'Premium öffnet die erweiterten Gewohnheiten, längere Vorschau und deinen Wochenrückblick.',
+      title: 'Dein Starter-Rhythmus steht.',
+      text: 'Premium öffnet zusätzliche Gewohnheiten, längere Vorschau und deinen Wochenrückblick.',
     };
   }
 
@@ -1066,7 +1066,7 @@ function App() {
 
           {!isPremium ? (
             <div className="premium-note">
-              <strong>Gratis-Vorschau:</strong> Du siehst aktuell {PREVIEW_DAYS} Tage im Voraus.
+              <strong>Starter-Vorschau:</strong> Du siehst aktuell {PREVIEW_DAYS} Tage im Voraus.
               Premium erweitert die Vorschau auf {PREMIUM_PREVIEW_DAYS} Tage.
             </div>
           ) : null}
@@ -1229,7 +1229,7 @@ function App() {
               <p className="section-label">Premium</p>
               <h3>Wochenrückblick freischalten</h3>
               <p>
-                In der Gratis-Version siehst du deine Basis-Zahlen. Premium zeigt dir deine
+                Im Starter-Einstieg siehst du deine wichtigsten Zahlen. Premium zeigt dir deine
                 Woche Tag für Tag und hilft dir, Erfolge bewusster wahrzunehmen.
               </p>
               <button
@@ -1266,7 +1266,7 @@ function App() {
 
         <section className="plan-card app-page" hidden={activeTab !== 'plan'}>
           <p className="section-label">Abo</p>
-          <h3>Gratis starten, Premium vorbereiten</h3>
+          <h3>Starter nutzen, Premium erleben</h3>
           <p className="plan-intro">
             Das ist aktuell ein MVP ohne echte Zahlung. Der Premium-Button schaltet die
             Funktionen als Demo frei. Für echte Zahlungen kann später Stripe, PayPal oder
@@ -1281,9 +1281,9 @@ function App() {
               <p>{PLAN_DETAILS.free.summary}</p>
               <ul>
                 <li>Täglicher Daily Drop</li>
-                <li>{freeTaskCount} Basis-Gewohnheiten</li>
+                <li>{freeTaskCount} Starter-Gewohnheiten</li>
                 <li>{PREVIEW_DAYS} Tage Vorschau</li>
-                <li>Basis-Fortschritt</li>
+                <li>Klarer Fortschrittsüberblick</li>
               </ul>
               <button
                 className="secondary-button"
@@ -1291,7 +1291,7 @@ function App() {
                 onClick={() => handlePlanChange('free')}
                 type="button"
               >
-                Gratis nutzen
+                Starter nutzen
               </button>
             </article>
 
