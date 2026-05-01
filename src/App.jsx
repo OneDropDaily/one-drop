@@ -1146,7 +1146,7 @@ function App() {
             <img
               alt="One Drop Logo"
               className="top-brand-logo"
-              src={`${import.meta.env.BASE_URL}one-drop-header-logo.png`}
+              src={`${import.meta.env.BASE_URL}one-drop-header-wordmark.png`}
             />
           </button>
 
