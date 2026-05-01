@@ -1,9 +1,10 @@
-const CACHE_NAME = 'one-drop-v9';
+const CACHE_NAME = 'one-drop-v10';
 const APP_SHELL = [
   './',
   './index.html',
   './hero-top.jpeg',
   './manifest.webmanifest',
+  './one-drop-header-logo.png',
   './one-drop-icon-192-v2.png',
   './one-drop-icon-512-v2.png',
   './icon.svg',

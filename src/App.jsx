@@ -1146,12 +1146,8 @@ function App() {
             <img
               alt="One Drop Logo"
               className="top-brand-logo"
-              src={`${import.meta.env.BASE_URL}one-drop-icon-192-v2.png`}
+              src={`${import.meta.env.BASE_URL}one-drop-header-logo.png`}
             />
-            <span className="top-brand-copy">
-              <span className="top-brand-title">One Drop</span>
-              <span className="top-brand-subtitle">Dein täglicher Mini-Schritt</span>
-            </span>
           </button>
 
           <button
