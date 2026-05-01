@@ -1,10 +1,14 @@
-const CACHE_NAME = 'one-drop-v5';
+const CACHE_NAME = 'one-drop-v6';
 const APP_SHELL = [
   './',
   './index.html',
   './hero-top.jpeg',
   './manifest.webmanifest',
+  './icon-192.png',
+  './icon-512.png',
   './icon.svg',
+  './apple-touch-icon.png',
+  './maskable-icon-512.png',
   './maskable-icon.svg',
 ].map((path) => new URL(path, self.location.href).toString());
 const FALLBACK_URL = new URL('./index.html', self.location.href).toString();
