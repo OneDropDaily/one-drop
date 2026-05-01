@@ -1,4 +1,4 @@
-const CACHE_NAME = 'one-drop-v6';
+const CACHE_NAME = 'one-drop-v7';
 const APP_SHELL = [
   './',
   './index.html',
