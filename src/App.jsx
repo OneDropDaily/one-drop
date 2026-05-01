@@ -733,6 +733,37 @@ function App() {
       return null;
     }
 
+    if (infoWindow.type === 'profile') {
+      return {
+        label: 'Profil',
+        title: 'Mein One Drop Profil',
+        status: `${currentPlanDetails.name} · ${currentPlanDetails.price}`,
+        cards: [
+          {
+            title: 'Dein aktueller Stand',
+            text:
+              currentStreak > 0
+                ? `Du bist aktuell ${currentStreak} Tage in Folge dran und hast schon ${completedCount} Drops gesammelt.`
+                : `Dein Profil ist startklar. Mit dem ersten erledigten Drop beginnt hier direkt deine erste Serie.`,
+          },
+          {
+            title: 'Dein Zugang',
+            text: isPremium
+              ? `Du nutzt gerade Premium mit ${PREMIUM_PREVIEW_DAYS} Tagen Vorschau und allen ${TASKS.length} Gewohnheiten.`
+              : `Du nutzt gerade den Starter-Zugang mit ${PREVIEW_DAYS} Tagen Vorschau und den wichtigsten Gewohnheiten für deinen Einstieg.`,
+          },
+          {
+            title: 'Nächster sinnvoller Schritt',
+            text: isPremium
+              ? 'Öffne deinen Fortschritt oder einen zukünftigen Tag und plane deinen nächsten kleinen Schritt.'
+              : 'Wenn du mehr Vorschau und mehr Gewohnheiten willst, kannst du dir im Abo-Bereich jederzeit Premium ansehen.',
+            highlight: true,
+          },
+        ],
+        action: { type: 'tab', tab: isPremium ? 'progress' : 'plan', label: isPremium ? 'Zum Fortschritt' : 'Abo ansehen' },
+      };
+    }
+
     if (infoWindow.type === 'task') {
       const task = getTaskById(infoWindow.taskId);
       const isPremiumOnly = task.unlockAt > FREE_TASK_UNLOCK_LIMIT;
@@ -1103,6 +1134,41 @@ function App() {
       <div className="background-orb background-orb-right" />
 
       <main className="container">
+        <header className="top-bar">
+          <button
+            className="top-brand"
+            onClick={() => {
+              setActiveTab('today');
+              handleSelectDate(todayKey, false);
+            }}
+            type="button"
+          >
+            <img
+              alt="One Drop Logo"
+              className="top-brand-logo"
+              src={`${import.meta.env.BASE_URL}one-drop-icon-192-v2.png`}
+            />
+            <span className="top-brand-copy">
+              <span className="top-brand-title">One Drop</span>
+              <span className="top-brand-subtitle">Dein täglicher Mini-Schritt</span>
+            </span>
+          </button>
+
+          <button
+            className="top-profile"
+            onClick={() => openInfoWindow({ type: 'profile' })}
+            type="button"
+          >
+            <span className="top-profile-copy">
+              <span className="top-profile-label">Mein Profil</span>
+              <span className="top-profile-meta">
+                {currentPlanDetails.name} · {currentStreak > 0 ? `${currentStreak} Tage Serie` : 'Heute bereit'}
+              </span>
+            </span>
+            <span aria-hidden="true" className="top-profile-avatar">MP</span>
+          </button>
+        </header>
+
         <section className="hero-card">
           <div className="hero-visual">
             <img
