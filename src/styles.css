@@ -452,6 +452,35 @@ a {
   justify-content: space-between;
 }
 
+.stat-box-button,
+.unlock-item-button,
+.weekly-review-item-button,
+.tip-card {
+  width: 100%;
+  border: 1px solid transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.stat-box-button:hover,
+.unlock-item-button:hover,
+.weekly-review-item-button:hover,
+.tip-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(17, 104, 255, 0.2);
+  box-shadow: 0 16px 34px rgba(17, 71, 170, 0.1);
+}
+
+.stat-box-button:focus-visible,
+.unlock-item-button:focus-visible,
+.weekly-review-item-button:focus-visible,
+.tip-card:focus-visible {
+  outline: 3px solid rgba(17, 104, 255, 0.24);
+  outline-offset: 3px;
+}
+
 .stat-value {
   font-size: 2rem;
   line-height: 1;
@@ -899,6 +928,12 @@ a {
   gap: 1rem;
 }
 
+.tip-card {
+  padding: 1rem;
+  border-radius: 22px;
+  background: rgba(238, 247, 255, 0.9);
+}
+
 .tips-grid h3 {
   margin: 0 0 0.4rem;
 }
@@ -1082,6 +1117,14 @@ a {
 
 .day-window-text {
   margin: 0.9rem 0 0;
+  color: var(--text-soft);
+}
+
+.info-window-list {
+  margin: 0.9rem 0 0;
+  padding-left: 1.15rem;
+  display: grid;
+  gap: 0.45rem;
   color: var(--text-soft);
 }
 

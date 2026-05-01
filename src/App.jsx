@@ -26,6 +26,49 @@ const PLAN_DETAILS = {
     summary: 'Mehr Gewohnheiten, längere Vorschau und detaillierter Wochenrückblick.',
   },
 };
+const TIP_CARDS = [
+  {
+    id: 'small-start',
+    title: 'Klein starten',
+    text: 'Mini-Gewohnheiten senken die Hürde und machen das Dranbleiben viel leichter.',
+    detail:
+      'Wenn ein Schritt klein genug ist, fühlt er sich nicht nach Überforderung an. Genau dadurch wird es realistischer, dass du wirklich beginnst und nicht nur planst.',
+    takeaway:
+      'Nutze One Drop so, dass du immer nur den nächsten machbaren Schritt suchst, nicht gleich die perfekte Tagesroutine.',
+  },
+  {
+    id: 'repeat-simple',
+    title: 'Einfach wiederholen',
+    text: 'Eine ruhige Routine bringt langfristig oft mehr als kurze Motivationsschübe.',
+    detail:
+      'Wiederholung wirkt oft stärker als einzelne starke Tage. Ein kleiner Schritt, den du häufig schaffst, wird schneller zu einer echten Gewohnheit.',
+    takeaway:
+      'Lieber etwas Kleines mehrmals schaffen als sich einmal zu viel vornehmen und dann aussteigen.',
+  },
+  {
+    id: 'visible-progress',
+    title: 'Sichtbarer Fortschritt',
+    text: 'Deine Serie zeigt dir direkt, dass du dranbleibst und weiterkommst.',
+    detail:
+      'Sichtbare Haken und Serien sind nicht nur Zahlen. Sie geben dir Rückmeldung, dass deine Routine bereits wächst, selbst wenn sich der Tag noch ganz normal anfühlt.',
+    takeaway:
+      'Schau nicht nur auf perfekte Tage, sondern auf das Muster, das du gerade aufbaust.',
+  },
+];
+const PLAN_FEATURES = {
+  free: [
+    'Täglicher Daily Drop',
+    `${FREE_TASK_UNLOCK_LIMIT} Starter-Gewohnheiten`,
+    `${PREVIEW_DAYS} Tage Vorschau`,
+    'Klarer Fortschrittsüberblick',
+  ],
+  premium: [
+    `Alle ${TASKS.length} Gewohnheiten`,
+    `${PREMIUM_PREVIEW_DAYS} Tage Vorschau`,
+    'Wochenrückblick',
+    'Erweiterte Freischaltungen',
+  ],
+};
 
 const TASKS = [
   {
@@ -548,6 +591,7 @@ function App() {
   const [progress, setProgress] = useState(getInitialProgress);
   const [selectedDateKey, setSelectedDateKey] = useState(todayKey);
   const [isDayWindowOpen, setIsDayWindowOpen] = useState(false);
+  const [infoWindow, setInfoWindow] = useState(null);
   const [activeTab, setActiveTab] = useState('today');
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const today = new Date();
@@ -684,7 +728,215 @@ function App() {
           ? 'Erledigt'
           : 'Offen';
   const premiumTaskCount = TASKS.filter((task) => task.unlockAt > FREE_TASK_UNLOCK_LIMIT).length;
-  const freeTaskCount = TASKS.length - premiumTaskCount;
+  const infoWindowContent = useMemo(() => {
+    if (!infoWindow) {
+      return null;
+    }
+
+    if (infoWindow.type === 'task') {
+      const task = getTaskById(infoWindow.taskId);
+      const isPremiumOnly = task.unlockAt > FREE_TASK_UNLOCK_LIMIT;
+      const isUnlocked = task.unlockAt <= completedCount && (isPremium || !isPremiumOnly);
+      const remainingSteps = Math.max(task.unlockAt - completedCount, 0);
+
+      return {
+        label: 'Gewohnheit im Detail',
+        title: task.title,
+        status: isUnlocked
+          ? 'Bereits freigeschaltet'
+          : isPremiumOnly && !isPremium
+            ? 'Mit Premium verfügbar'
+            : `Noch ${remainingSteps} ${remainingSteps === 1 ? 'erledigter Drop' : 'erledigte Drops'} bis zur Freischaltung`,
+        cards: [
+          { title: 'Was du machst', text: task.description },
+          { title: 'Warum das hilft', text: task.benefit },
+          { title: 'Kategorie & Zeit', text: `${task.category} · ${task.duration}` },
+          {
+            title: 'Freischaltung',
+            text: isUnlocked
+              ? 'Diese Gewohnheit ist schon in deiner Aufgabenrotation aktiv und kann ab jetzt in deinen Daily Drops auftauchen.'
+              : isPremiumOnly && !isPremium
+                ? 'Diese Gewohnheit gehört zum Premium-Bereich. Mit dem Demo-Umschalter kannst du sie sofort freischalten.'
+                : `Mit noch ${remainingSteps} weiteren ${remainingSteps === 1 ? 'erledigten Aufgabe' : 'erledigten Aufgaben'} wird diese Gewohnheit automatisch geöffnet.`,
+            highlight: true,
+          },
+        ],
+        action: isPremiumOnly && !isPremium
+          ? { type: 'plan', plan: 'premium', tab: 'plan', label: 'Premium öffnen' }
+          : { type: 'tab', tab: 'tasks', label: 'Zum Aufgabenbereich' },
+      };
+    }
+
+    if (infoWindow.type === 'tip') {
+      const tip = TIP_CARDS.find((entry) => entry.id === infoWindow.tipId);
+
+      if (!tip) {
+        return null;
+      }
+
+      return {
+        label: 'Warum das hilft',
+        title: tip.title,
+        status: 'Kurz erklärt für deinen Alltag',
+        cards: [
+          { title: 'Grundidee', text: tip.detail },
+          { title: 'Was du mitnehmen kannst', text: tip.takeaway, highlight: true },
+        ],
+        action: { type: 'tab', tab: 'tasks', label: 'Zu den Gewohnheiten' },
+      };
+    }
+
+    if (infoWindow.type === 'stat') {
+      if (infoWindow.statId === 'current-streak') {
+        return {
+          label: 'Fortschritt im Detail',
+          title: `${currentStreak} Tage in Folge`,
+          status: currentStreak > 0 ? 'Deine aktuelle Serie läuft' : 'Noch keine aktive Serie',
+          cards: [
+            {
+              title: 'Was das bedeutet',
+              text:
+                currentStreak > 0
+                  ? `Du hast an ${currentStreak} aufeinanderfolgenden Tagen mindestens einen Drop geschafft.`
+                  : 'Sobald du heute oder an deinem nächsten verfügbaren Tag einen Drop schaffst, beginnt hier deine neue Serie.',
+            },
+            {
+              title: 'Warum das motiviert',
+              text: 'Eine sichtbare Serie macht Fortschritt konkret. Sie hilft dir, an Wiederholung statt an Perfektion zu denken.',
+              highlight: true,
+            },
+          ],
+          action: { type: 'tab', tab: 'progress', label: 'Zum Fortschritt' },
+        };
+      }
+
+      if (infoWindow.statId === 'best-streak') {
+        return {
+          label: 'Fortschritt im Detail',
+          title: `${bestStreak} Tage bester Lauf`,
+          status: bestStreak > 0 ? 'Das ist dein stärkster Rhythmus bisher' : 'Noch kein Lauf gespeichert',
+          cards: [
+            {
+              title: 'Was hier gezählt wird',
+              text:
+                bestStreak > 0
+                  ? `Dein bester zusammenhängender Lauf liegt aktuell bei ${bestStreak} Tagen.`
+                  : 'Sobald du mehrere Tage hintereinander dranbleibst, erscheint hier dein bisher bester Lauf.',
+            },
+            {
+              title: 'Wie du darauf aufbauen kannst',
+              text: 'Dein bester Lauf ist ein guter Referenzpunkt. Er zeigt dir, dass du diesen Rhythmus schon einmal schaffen konntest.',
+              highlight: true,
+            },
+          ],
+          action: { type: 'tab', tab: 'progress', label: 'Zum Fortschritt' },
+        };
+      }
+
+      if (infoWindow.statId === 'total-completed') {
+        return {
+          label: 'Fortschritt im Detail',
+          title: `${completedCount} erledigte Drops`,
+          status: 'Alle bisher abgehakten Schritte',
+          cards: [
+            {
+              title: 'Was gezählt wird',
+              text: 'Hier siehst du, wie viele Tage du insgesamt bereits positiv markiert hast.',
+            },
+            {
+              title: 'Warum das wichtig ist',
+              text: 'Auch wenn einzelne Tage klein wirken, zeigt dir diese Zahl, dass du schon echte Wiederholung aufgebaut hast.',
+              highlight: true,
+            },
+          ],
+          action: { type: 'tab', tab: 'progress', label: 'Zum Fortschritt' },
+        };
+      }
+
+      return {
+        label: 'Fortschritt im Detail',
+        title: `${completedThisWeek} von 7 Tagen in dieser Woche`,
+        status: 'Dein aktueller Wochenstand',
+        cards: [
+          {
+            title: 'Worum es hier geht',
+            text: 'Diese Kennzahl zeigt dir, an wie vielen der letzten sieben Tage du einen Drop gesammelt hast.',
+          },
+          {
+            title: 'Warum das hilft',
+            text: 'Der Wochenblick ist oft motivierender als der Perfektionsblick. Schon mehrere kleine Treffer geben deinem Alltag Struktur.',
+            highlight: true,
+          },
+        ],
+        action: { type: 'tab', tab: 'progress', label: 'Zum Fortschritt' },
+      };
+    }
+
+    if (infoWindow.type === 'plan') {
+      const planId = infoWindow.planId;
+      const details = PLAN_DETAILS[planId];
+
+      return {
+        label: 'Abo im Detail',
+        title: details.name,
+        status:
+          currentPlan === planId
+            ? 'Gerade aktiv'
+            : planId === 'premium'
+              ? 'Per Demo sofort aktivierbar'
+              : 'Du kannst jederzeit zurückwechseln',
+        cards: [
+          { title: 'Kurz erklärt', text: details.summary },
+          { title: 'Das ist enthalten', list: PLAN_FEATURES[planId] },
+          {
+            title: 'Hinweis',
+            text:
+              planId === 'premium'
+                ? 'In diesem MVP ist Premium ein Demo-Schalter. Es wird noch keine echte Zahlung ausgelöst.'
+                : 'Starter ist dein klarer kostenloser Einstieg mit den wichtigsten Kernfunktionen.',
+            highlight: true,
+          },
+        ],
+        action:
+          currentPlan === planId
+            ? { type: 'tab', tab: 'plan', label: 'Zum Abo-Bereich' }
+            : {
+                type: 'plan',
+                plan: planId,
+                tab: 'plan',
+                label: planId === 'premium' ? 'Premium aktivieren' : 'Starter aktivieren',
+              },
+      };
+    }
+
+    return {
+      label: 'Wochenrückblick',
+      title: 'Dein Start liegt später',
+      status: `Start ab ${startDateLabel}`,
+      cards: [
+        {
+          title: 'Warum hier noch nichts aufgeht',
+          text: `Dein persönlicher Starttag liegt am ${startDateLabel}. Frühere Tage bleiben bewusst leer, damit dein Verlauf sauber mit deinem echten Einstieg beginnt.`,
+        },
+        {
+          title: 'Was du jetzt machen kannst',
+          text: 'Öffne stattdessen deinen heutigen Drop oder schau in die nächsten verfügbaren Tage.',
+          highlight: true,
+        },
+      ],
+      action: { type: 'open-day', dateKey: todayKey, label: 'Heutigen Tag öffnen' },
+    };
+  }, [
+    infoWindow,
+    completedCount,
+    isPremium,
+    currentStreak,
+    bestStreak,
+    completedThisWeek,
+    currentPlan,
+    startDateLabel,
+    todayKey,
+  ]);
 
   useEffect(() => {
     if (progress.storageVersion !== STORAGE_VERSION || !progress.startDateKey) {
@@ -742,15 +994,63 @@ function App() {
     setCalendarMonth(new Date(today.getFullYear(), today.getMonth(), 1));
   }
 
+  function openInfoWindow(nextWindow) {
+    setIsDayWindowOpen(false);
+    setInfoWindow(nextWindow);
+  }
+
   function closeDayWindow() {
     setIsDayWindowOpen(false);
   }
 
-  function handlePlanChange(nextPlan) {
+  function closeInfoWindow() {
+    setInfoWindow(null);
+  }
+
+  function handleInfoWindowAction() {
+    if (!infoWindowContent?.action) {
+      closeInfoWindow();
+      return;
+    }
+
+    const action = infoWindowContent.action;
+    closeInfoWindow();
+
+    if (action.type === 'tab') {
+      setActiveTab(action.tab);
+      return;
+    }
+
+    if (action.type === 'plan') {
+      handlePlanChange(action.plan, false);
+      setActiveTab(action.tab ?? 'plan');
+      return;
+    }
+
+    if (action.type === 'open-day') {
+      setActiveTab('today');
+      handleSelectDate(action.dateKey, true);
+    }
+  }
+
+  function handlePlanChange(nextPlan, shouldOpenWindow = true) {
     setProgress((currentProgress) => ({
       ...currentProgress,
       plan: nextPlan,
     }));
+
+    if (shouldOpenWindow) {
+      openInfoWindow({ type: 'plan', planId: nextPlan });
+    }
+  }
+
+  function handleWeeklyReviewSelect(entry) {
+    if (entry.isBeforeStart) {
+      openInfoWindow({ type: 'before-start' });
+      return;
+    }
+
+    handleSelectDate(entry.dayKey, true);
   }
 
   function handleComplete() {
@@ -825,7 +1125,10 @@ function App() {
           <div className="hero-actions">
             <button
               className="primary-link"
-              onClick={() => setActiveTab('today')}
+              onClick={() => {
+                setActiveTab('today');
+                handleSelectDate(todayKey, true);
+              }}
               type="button"
             >
               Heutigen Tag öffnen
@@ -983,22 +1286,38 @@ function App() {
               <p className="progress-highlight-text">{progressHighlight.text}</p>
             </div>
             <div className="stats-grid">
-              <div className="stat-box">
+              <button
+                className="stat-box stat-box-button"
+                onClick={() => openInfoWindow({ type: 'stat', statId: 'current-streak' })}
+                type="button"
+              >
                 <span className="stat-value">{currentStreak}</span>
                 <span className="stat-label">Tage in Folge</span>
-              </div>
-              <div className="stat-box">
+              </button>
+              <button
+                className="stat-box stat-box-button"
+                onClick={() => openInfoWindow({ type: 'stat', statId: 'best-streak' })}
+                type="button"
+              >
                 <span className="stat-value">{bestStreak}</span>
                 <span className="stat-label">Bester Lauf</span>
-              </div>
-              <div className="stat-box">
+              </button>
+              <button
+                className="stat-box stat-box-button"
+                onClick={() => openInfoWindow({ type: 'stat', statId: 'total-completed' })}
+                type="button"
+              >
                 <span className="stat-value">{sortedCompletedDates.length}</span>
                 <span className="stat-label">Gesamt erledigt</span>
-              </div>
-              <div className="stat-box">
+              </button>
+              <button
+                className="stat-box stat-box-button"
+                onClick={() => openInfoWindow({ type: 'stat', statId: 'weekly-progress' })}
+                type="button"
+              >
                 <span className="stat-value">{completedThisWeek}/7</span>
                 <span className="stat-label">Diese Woche</span>
-              </div>
+              </button>
             </div>
 
             <div className="week-strip">
@@ -1144,9 +1463,11 @@ function App() {
               const isUnlocked = task.unlockAt <= completedCount && (isPremium || !isPremiumOnly);
 
               return (
-                <article
-                  className={`unlock-item ${isUnlocked ? 'is-unlocked' : 'is-locked'} ${isPremiumOnly ? 'is-premium-only' : ''}`}
+                <button
+                  className={`unlock-item unlock-item-button ${isUnlocked ? 'is-unlocked' : 'is-locked'} ${isPremiumOnly ? 'is-premium-only' : ''}`}
                   key={task.id}
+                  onClick={() => openInfoWindow({ type: 'task', taskId: task.id })}
+                  type="button"
                 >
                   <div className="unlock-item-top">
                     <span className={`unlock-state ${isUnlocked ? 'is-unlocked' : 'is-locked'}`}>
@@ -1166,9 +1487,9 @@ function App() {
                       ? 'Diese Gewohnheit ist jetzt in deiner Aufgabenrotation aktiv.'
                       : isPremiumOnly && !isPremium
                         ? 'Diese erweiterte Gewohnheit wird mit Premium geöffnet.'
-                      : 'Mit weiteren kleinen Schritten wird diese Aufgabe automatisch geöffnet.'}
+                        : 'Mit weiteren kleinen Schritten wird diese Aufgabe automatisch geöffnet.'}
                   </p>
-                </article>
+                </button>
               );
             })}
           </div>
@@ -1188,9 +1509,11 @@ function App() {
 
               <div className="weekly-review-list">
                 {weeklyReviewEntries.map((entry) => (
-                  <article
-                    className={`weekly-review-item ${entry.isBeforeStart ? 'is-before-start' : entry.isCompleted ? 'is-complete' : 'is-open'}`}
+                  <button
+                    className={`weekly-review-item weekly-review-item-button ${entry.isBeforeStart ? 'is-before-start' : entry.isCompleted ? 'is-complete' : 'is-open'}`}
                     key={entry.dayKey}
+                    onClick={() => handleWeeklyReviewSelect(entry)}
+                    type="button"
                   >
                     <div className="weekly-review-date">
                       <span className="weekly-review-day">{entry.dayLabel}</span>
@@ -1220,7 +1543,7 @@ function App() {
                         {entry.isBeforeStart ? 'Noch kein Start' : entry.isCompleted ? 'Geschafft' : 'Offen'}
                       </span>
                     </div>
-                  </article>
+                  </button>
                 ))}
               </div>
             </>
@@ -1249,18 +1572,17 @@ function App() {
         <section className="tips-card app-page" hidden={activeTab !== 'tasks'}>
           <p className="section-label">Warum das hilfreich ist</p>
           <div className="tips-grid">
-            <div>
-              <h3>Klein starten</h3>
-              <p>Mini-Gewohnheiten senken die Hürde und machen das Dranbleiben viel leichter.</p>
-            </div>
-            <div>
-              <h3>Einfach wiederholen</h3>
-              <p>Eine ruhige Routine bringt langfristig oft mehr als kurze Motivationsschübe.</p>
-            </div>
-            <div>
-              <h3>Sichtbarer Fortschritt</h3>
-              <p>Deine Serie zeigt dir direkt, dass du dranbleibst und weiterkommst.</p>
-            </div>
+            {TIP_CARDS.map((tip) => (
+              <button
+                className="tip-card"
+                key={tip.id}
+                onClick={() => openInfoWindow({ type: 'tip', tipId: tip.id })}
+                type="button"
+              >
+                <h3>{tip.title}</h3>
+                <p>{tip.text}</p>
+              </button>
+            ))}
           </div>
         </section>
 
@@ -1280,10 +1602,9 @@ function App() {
               <strong>{PLAN_DETAILS.free.price}</strong>
               <p>{PLAN_DETAILS.free.summary}</p>
               <ul>
-                <li>Täglicher Daily Drop</li>
-                <li>{freeTaskCount} Starter-Gewohnheiten</li>
-                <li>{PREVIEW_DAYS} Tage Vorschau</li>
-                <li>Klarer Fortschrittsüberblick</li>
+                {PLAN_FEATURES.free.map((feature) => (
+                  <li key={feature}>{feature}</li>
+                ))}
               </ul>
               <button
                 className="secondary-button"
@@ -1301,10 +1622,9 @@ function App() {
               <strong>{PLAN_DETAILS.premium.price}</strong>
               <p>{PLAN_DETAILS.premium.summary}</p>
               <ul>
-                <li>Alle {TASKS.length} Gewohnheiten</li>
-                <li>{PREMIUM_PREVIEW_DAYS} Tage Vorschau</li>
-                <li>Wochenrückblick</li>
-                <li>Erweiterte Freischaltungen</li>
+                {PLAN_FEATURES.premium.map((feature) => (
+                  <li key={feature}>{feature}</li>
+                ))}
               </ul>
               <button
                 className="complete-button"
@@ -1318,6 +1638,59 @@ function App() {
           </div>
         </section>
       </main>
+
+      {infoWindowContent ? (
+        <div className="day-window-backdrop" onClick={closeInfoWindow} role="presentation">
+          <section
+            aria-labelledby="info-window-title"
+            aria-modal="true"
+            className="day-window"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <div className="day-window-header">
+              <div>
+                <p className="section-label">{infoWindowContent.label}</p>
+                <h3 id="info-window-title">{infoWindowContent.title}</h3>
+                <span className="day-window-status">{infoWindowContent.status}</span>
+              </div>
+
+              <button className="day-window-close" onClick={closeInfoWindow} type="button">
+                Schließen
+              </button>
+            </div>
+
+            <div className="day-window-grid">
+              {infoWindowContent.cards.map((card) => (
+                <section
+                  className={`day-window-panel ${card.highlight ? 'day-window-highlight-panel' : ''}`}
+                  key={card.title}
+                >
+                  <p className="section-label">{card.title}</p>
+                  {card.list ? (
+                    <ul className="info-window-list">
+                      {card.list.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="day-window-text">{card.text}</p>
+                  )}
+                </section>
+              ))}
+            </div>
+
+            <div className="day-window-actions">
+              <button className="complete-button" onClick={handleInfoWindowAction} type="button">
+                {infoWindowContent.action?.label ?? 'Verstanden'}
+              </button>
+              <button className="secondary-button" onClick={closeInfoWindow} type="button">
+                Fenster schließen
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {isDayWindowOpen ? (
         <div className="day-window-backdrop" onClick={closeDayWindow} role="presentation">
