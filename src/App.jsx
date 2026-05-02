@@ -55,21 +55,6 @@ const TIP_CARDS = [
       'Schau nicht nur auf perfekte Tage, sondern auf das Muster, das du gerade aufbaust.',
   },
 ];
-const PLAN_FEATURES = {
-  free: [
-    'Täglicher Daily Drop',
-    `${FREE_TASK_UNLOCK_LIMIT} Starter-Gewohnheiten`,
-    `${PREVIEW_DAYS} Tage Vorschau`,
-    'Klarer Fortschrittsüberblick',
-  ],
-  premium: [
-    `Alle ${TASKS.length} Gewohnheiten`,
-    `${PREMIUM_PREVIEW_DAYS} Tage Vorschau`,
-    'Wochenrückblick',
-    'Erweiterte Freischaltungen',
-  ],
-};
-
 const TASKS = [
   {
     id: 'energie-reset',
@@ -234,6 +219,21 @@ const TASKS = [
     duration: '1 Minute Planung',
   },
 ];
+
+const PLAN_FEATURES = {
+  free: [
+    'Täglicher Daily Drop',
+    `${FREE_TASK_UNLOCK_LIMIT} Starter-Gewohnheiten`,
+    `${PREVIEW_DAYS} Tage Vorschau`,
+    'Klarer Fortschrittsüberblick',
+  ],
+  premium: [
+    `Alle ${TASKS.length} Gewohnheiten`,
+    `${PREMIUM_PREVIEW_DAYS} Tage Vorschau`,
+    'Wochenrückblick',
+    'Erweiterte Freischaltungen',
+  ],
+};
 
 function formatDateKey(date = new Date()) {
   const year = date.getFullYear();
