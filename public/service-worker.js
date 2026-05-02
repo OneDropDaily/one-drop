@@ -1,14 +1,14 @@
-const CACHE_NAME = 'one-drop-v12';
+const CACHE_NAME = 'one-drop-v13';
 const APP_SHELL = [
   './',
   './index.html',
   './hero-top.jpeg',
   './manifest.webmanifest',
   './one-drop-header-wordmark-v2.png',
-  './one-drop-icon-192-v3.png',
-  './one-drop-icon-512-v3.png',
-  './apple-touch-icon-v3.png',
-  './one-drop-maskable-icon-512-v3.png',
+  './one-drop-icon-192-v4.png',
+  './one-drop-icon-512-v4.png',
+  './apple-touch-icon-v4.png',
+  './one-drop-maskable-icon-512-v4.png',
 ].map((path) => new URL(path, self.location.href).toString());
 const FALLBACK_URL = new URL('./index.html', self.location.href).toString();
 
